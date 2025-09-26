@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calculadora Penal RP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="hd" style="display:flex;align-items:center;gap:10px">
+        <img
+          src="https://media.discordapp.net/attachments/1197415680614596739/1415914758540103741/Brasao_01_-_Police.png?ex=68d765e0&is=68d61460&hm=0f82527bbce24f02bd34b08482b9f87990e2dd2326d311201f3dddc624878d95&=&format=webp&quality=lossless&width=642&height=640"
+          alt="Logo Polícia" style="height:50px;width:50px;object-fit:contain">
+        <h1>Calculadora Penal Prime City</h1>
+      </div>
+      <div class="bd">
+        <div class="row">
+          <input id="nome" placeholder="Nome (RP)" />
+          <input id="cid" placeholder="ID" />
+        </div>
+        <div class="row3">
+          <input id="busca" placeholder="Buscar crime/infração…" />
+          <select id="crimeSelect"></select>
+          <button class="btn" id="addBtn">Adicionar</button>
+        </div>
+        <div class="row">
+          <label class="pill sliderRow">
+            <span>Fiança %</span>
+            <input id="bailPct" type="range" min="0" max="100" value="0" />
+            <output id="bailPctOut">0%</output>
+          </label>
+          <label class="pill sliderRow">
+            <span>Desc. Serviços %</span>
+            <input id="descServ" type="range" min="0" max="100" value="0" />
+            <output id="descServOut">0%</output>
+          </label>
+        </div>
+        <div class="row">
+          <label class="pill sliderRow">
+            <span>Desc. Multa %</span>
+            <input id="descMulta" type="range" min="0" max="100" value="0" />
+            <output id="descMultaOut">0%</output>
+          </label>
+          <div class="pill flex" style="align-items:center;justify-content:space-between">
+            <div>
+              <div class="muted">Status de Fiança</div>
+              <div id="bailStatus" class="chip good">Permitida</div>
+            </div>
+            <div class="muted">Conversão: <b>$325</b> por serviço</div>
+          </div>
+        </div>
+        <h2>Selecionados</h2>
+        <div class="muted" id="emptyTip">Adicione crimes/infrações acima.</div>
+        <table id="tabSel" style="display:none">
+          <thead>
+            <tr>
+              <th style="width:36px">#</th>
+              <th>Crime / Infração</th>
+              <th>Serviços</th>
+              <th>Multa ($)</th>
+              <th style="width:90px">Qtd</th>
+              <th>Obs</th>
+              <th style="width:46px"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="totals">
+          <div class="pill">
+            <div class="muted">Serviços (base)</div>
+            <div class="kpi" id="kServBase">0</div>
+          </div>
+          <div class="pill">
+            <div class="muted">Multas (base)</div>
+            <div class="kpi" id="kMultaBase">$0</div>
+          </div>
+          <div class="pill">
+            <div class="muted">Fiança (100%)</div>
+            <div class="kpi" id="kBailFull">$0</div>
+          </div>
+          <div class="pill">
+            <div class="muted">Fiança a pagar</div>
+            <div class="kpi" id="kBailPay">$0</div>
+          </div>
+        </div>
+        <div class="totals">
+          <div class="pill">
+            <div class="muted">Serviços após desconto</div>
+            <div class="kpi" id="kServDisc">0</div>
+          </div>
+          <div class="pill">
+            <div class="muted">Serviços após fiança</div>
+            <div class="kpi" id="kServFinal">0</div>
+          </div>
+          <div class="pill">
+            <div class="muted">Multa após desconto</div>
+            <div class="kpi" id="kMultaFinal">$0</div>
+          </div>
+          <div class="pill">
+            <div class="muted">Itens selecionados</div>
+            <div class="kpi" id="kItens">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd" style="justify-content:space-between">
+        <div>
+          <div class="muted">Relatório de prisão</div>
+          <h1>Prévia & edição</h1>
+        </div>
+        <div class="flex">
+          <button class="btn secondary" id="copyBtn">Copiar</button>
+          <button class="btn" id="printBtn">Imprimir</button>
+          <button class="btn danger" id="clearBtn" title="Limpar seleção">Limpar</button>
+        </div>
+      </div>
+      <div class="bd">
+        <textarea id="relatorio" class="report"
+          placeholder="O relatório será gerado aqui e pode ser editado antes de copiar/imprimir…"></textarea>
+        <div class="footerNote">
+          • Crimes contra a vida (Homicídio, Homicídio Oficial, Latrocínio, Terrorismo) <b>não possuem fiança</b>.
+          • Cada serviço pode ser convertido em <b>$325</b> de fiança.
+          • Limite de velocidade na cidade: <b>120 km/h</b> (veículos de grande porte: <b>90 km/h</b>).
+        </div>
+        <div class="stickyBtns">
+          <button class="btn" id="genBtn">Gerar relatório</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ====== Base de dados (crimes/infrações) ======
+    const DATA = [
+      { n: "Ameaça", s: 10, m: 775, o: "Ameaçar alguém por palavra, escrito ou gesto.", b: true },
+      { n: "Associação criminosa", s: 10, m: 525, o: "Associarem-se 3 ou mais pessoas, para fim específico de cometer crimes.", b: true },
+      { n: "Corridas ilegais", s: 25, m: 1500, o: "Participar de corridas clandestinas.", b: true },
+      { n: "Conspiração", s: 10, m: 525, o: "Planejar atividade ilegal", b: true },
+      { n: "Corrupção", s: 120, m: 100000, o: "Solicitar, receber, obter ou utilizar para si ou para outrem, direta ou indiretamente.", b: true },
+      { n: "Comportamento Indisciplinar", s: 0, m: 9750, o: "Se comportar indevidamente com base no seu emprego.", b: true },
+      { n: "Dano ao Patrimônio Pessoal", s: 0, m: 2750, o: "Danificar o bem de outra pessoa.", b: true },
+      { n: "Dano ao Patrimônio Estadual", s: 0, m: 5250, o: "Danificar o bem do estado.", b: true },
+      { n: "Denúncia caluniosa", s: 10, m: 525, o: "Dar causa à instauração de investigação policial de processo judicial.", b: true },
+      { n: "Desobediência", s: 10, m: 525, o: "Desobedecer ordem de funcionário público.", b: true },
+      { n: "Dólares ilícitos", s: 10, m: 0, o: "Em roubos de grande porte a pena é dobrada.", b: true },
+      { n: "Estelionato", s: 15, m: 775, o: "Obter para si ou para outrem vantagem ilícita em prejuízo alheio.", b: true },
+      { n: "Extorsão", s: 15, m: 775, o: "Obrigar a tomar um determinado comportamento por meio de ameaça ou violência.", b: true },
+      { n: "Falsidade ideológica / Falsa identidade", s: 10, m: 1250, o: "Atribuir à si ou a terceiros falsa identidade para obter vantagem em proveito alheio.", b: true },
+      { n: "Foragido Prisional", s: 60, m: 7250, o: "Não estar com o período prisional em dia, sendo um foragido do governo.", b: true },
+      { n: "Falso testemunho", s: 10, m: 525, o: "Fazer afirmação falsa, negar ou calar a verdade.", b: true },
+      { n: "Fraude", s: 10, m: 775, o: "Mentorar ou participar de esquema ilícito ou de má-fé visando obter vantagens.", b: true },
+      { n: "Fuga", s: 7, m: 275, o: "Evadir-se da polícia.", b: true },
+      { n: "Furto", s: 7, m: 375, o: "Subtrair, para si ou para outrem coisa móvel alheia.", b: true },
+      { n: "Injúria", s: 15, m: 775, o: "Injuriar alguém, ofendendo-lhe a dignidade ou o decoro.", b: true },
+      { n: "Invasão", s: 5, m: 0, o: "Invadir áreas privadas, ou públicas de acesso restrito.", b: true },
+      { n: "Latrocínio", s: 20, m: 1750, o: "Roubo seguido de morte.", b: false },
+      { n: "Lesão corporal", s: 10, m: 775, o: "Ofender a integridade corporal ou a saúde de outrem.", b: true },
+      { n: "Multas não pagas", s: 15, m: 0, o: "Multas com atraso de 24 horas no pagamento.", b: true },
+      { n: "Obstrução da justiça", s: 25, m: 2750, o: "Cometer o impedimento ou qualquer forma que atrapalhe a investigação.", b: true },
+      { n: "Ocultação Facial", s: 10, m: 15750, o: "Utilização de adornos ou acessórios que ocultem totalmente ou parcialmente a face.", b: true },
+      { n: "Omissão de socorro", s: 10, m: 1250, o: "Deixar de prestar assistência, quando possível fazê-lo sem risco pessoal ou ferida.", b: true },
+      { n: "Perseguição", s: 15, m: 1250, o: "Seguir alguém, perseguir ou qualquer coisa do gênero.", b: true },
+      { n: "Porte/Posse ilegal de armas classe 1", s: 5, m: 675, o: "Porte / Posse ilegal de armas semi-automáticas.", b: true },
+      { n: "Porte/Posse ilegal de armas classe 2", s: 10, m: 975, o: "Porte / Posse ilegal de armas automáticas.", b: true },
+      { n: "Produtos Ilícitos", s: 7, m: 775, o: "Produto adquirido por roubos ou utilizado para crimes.", b: true },
+      { n: "Recepção", s: 10, m: 275, o: "Receptar, em proveito próprio ou alheio, coisa que se saiba ser produto de crime.", b: true },
+      { n: "Resistência", s: 10, m: 775, o: "Opor-se à execução de ato legal, mediante violência ou ameaça ao funcionário.", b: true },
+      { n: "Roubo", s: 10, m: 1250, o: "Subtrair posses alheias, para si ou para outrem, mediante grave ameaça ou violência.", b: true },
+      { n: "Roubo a banco", s: 50, m: 15000, o: "Subtrair valores de agência bancária com uso de violência ou ameaça.", b: true },
+      { n: "Roubo a loja de armas", s: 30, m: 7500, o: "Subtrair armas ou munições de armaria, mediante grave ameaça ou violência.", b: true },
+      { n: "Roubo a lojinha", s: 10, m: 1250, o: "Subtrair posses de estabelecimentos de pequeno porte, mediante grave ameaça ou violência.", b: true },
+      { n: "Roubo a barbearia", s: 7, m: 750, o: "Subtrair valores ou bens de barbearia, mediante grave ameaça ou violência.", b: true },
+      { n: "Roupas policiais", s: 0, m: 2750, o: "Utilizar qualquer utilitário exclusivo policial.", b: true },
+      { n: "Sequestro", s: 15, m: 1250, o: "Privar alguém de sua liberdade mediante sequestro ou cárcere privado.", b: true },
+      { n: "Suborno", s: 15, m: 2500, o: "Oferecer ou prometer vantagem indevida a funcionário público.", b: true },
+      { n: "Tentativa / Homicídio", s: 15, m: 775, o: "Quando o suspeito quis o resultado e assumiu o risco de produzi-lo.", b: false },
+      { n: "Tentativa / Homicídio Oficial", s: 20, m: 1250, o: "Quando o suspeito quis o resultado e assumiu o risco de produzi-lo em um oficial do governo.", b: false },
+      { n: "Terrorismo", s: 25, m: 5250, o: "Cuja violência ilegítima passa a denominar-se terror.", b: false },
+      { n: "Tráfico classe 1", s: 10, m: 275, o: "Portar substância ilícita.", b: true },
+      { n: "Tráfico classe 2", s: 15, m: 375, o: "Portar munição de forma ilegal.", b: true },
+      // Infrações
+      { n: "Alta velocidade", s: 0, m: 750, o: "Aumenta $25 dólares a cada 20Kmh.", b: true },
+      { n: "Direção imprudente", s: 0, m: 1250, o: "Conduta imprudente no trânsito utilizando um caminhão ou ônibus.", b: true },
+      { n: "Direção perigosa", s: 0, m: 1250, o: "Uso negligente ou imprudente de um veículo.", b: true },
+      { n: "Estacionar em local proibido", s: 0, m: 1250, o: "Deixar o veículo em local indevido.", b: true },
+      { n: "Pousar em local proibido ou sem designação", s: 0, m: 17500, o: "Pousar veículos aéreos fora de locais adequados e seguros.", b: true },
+      { n: "Serviços pendentes", s: 0, m: 250, o: "O valor é multiplicado para cada serviço pendente.", b: true },
+    ];
+    const BAIL_PER_SERVICE = 325;
+
+    // ====== Estado ======
+    let selected = []; // {idx, qtd}
+
+    // ====== Helpers ======
+    const $ = (q) => document.querySelector(q);
+    const $$ = (q) => Array.from(document.querySelectorAll(q));
+    const money = (v) => `$${(Math.round(v * 100) / 100).toLocaleString('en-US')}`;
+
+    function rebuildSelect(filter = "") {
+      const sel = $("#crimeSelect");
+      const q = filter.toLowerCase();
+      const items = DATA.map((d, i) => ({ label: d.n, value: i })).filter(x => x.label.toLowerCase().includes(q));
+      sel.innerHTML = items.map(x => `<option value="${x.value}">${x.label}</option>`).join("");
+    }
+
+    function pushItem(idx) {
+      const ex = selected.find(x => x.idx === idx);
+      if (ex) { ex.qtd++; } else { selected.push({ idx, qtd: 1 }); }
+      renderSel();
+    }
+
+    function removeItem(i) { selected.splice(i, 1); renderSel(); }
+
+    function calcTotals() {
+      let baseServ = 0, baseMulta = 0, items = 0, bailAllowed = true;
+      for (const it of selected) {
+        const d = DATA[it.idx];
+        baseServ += d.s * it.qtd;
+        baseMulta += d.m * it.qtd;
+        items += it.qtd;
+        if (!d.b) bailAllowed = false;
+      }
+      const descServPct = +$("#descServ").value / 100;
+      const descMultaPct = +$("#descMulta").value / 100;
+      const bailPct = +$("#bailPct").value / 100;
+
+      // status de fiança
+      $("#bailStatus").className = `chip ${bailAllowed ? 'good' : 'bad'}`;
+      $("#bailStatus").textContent = bailAllowed ? 'Permitida' : 'Bloqueada (crime contra a vida)';
+      $("#bailPct").disabled = !bailAllowed;
+
+      const servDesc = Math.max(0, Math.round(baseServ * (1 - descServPct)));
+      const multaDesc = Math.max(0, Math.round(baseMulta * (1 - descMultaPct)));
+
+      const bailFull = baseServ * BAIL_PER_SERVICE; // 100%
+      const bailToPay = bailAllowed ? bailFull * bailPct : 0;
+      const servAfterBail = Math.max(0, Math.round(servDesc * (1 - (bailAllowed ? bailPct : 0))));
+
+      return { baseServ, baseMulta, items, servDesc, multaDesc, bailFull, bailToPay, servAfterBail, bailAllowed };
+    }
+
+    function renderSel() {
+      const tbody = $("#tabSel tbody");
+      $("#emptyTip").style.display = selected.length ? 'none' : 'block';
+      $("#tabSel").style.display = selected.length ? 'table' : 'none';
+      tbody.innerHTML = selected.map((it, i) => {
+        const d = DATA[it.idx];
+        return `<tr>
+      <td>${i + 1}</td>
+      <td>${d.n}</td>
+      <td class="right">${d.s}</td>
+      <td class="right">${money(d.m)}</td>
+      <td class="right"><input type="number" min="1" value="${it.qtd}" data-i="${i}" class="qtdInp" style="width:72px"></td>
+      <td class="muted">${d.o}</td>
+      <td class="right"><button class="btn secondary" onclick="removeItem(${i})">–</button></td>
+    </tr>`;
+      }).join("");
+
+      $$(".qtdInp").forEach(inp => {
+        inp.addEventListener('input', e => {
+          const i = +e.target.dataset.i; let v = parseInt(e.target.value || '1'); if (v < 1) v = 1; selected[i].qtd = v; updateKPIs();
+        });
+      });
+
+      updateKPIs();
+      persist();
+    }
+
+    function updateKPIs() {
+      const T = calcTotals();
+      $("#kServBase").textContent = T.baseServ;
+      $("#kMultaBase").textContent = money(T.baseMulta);
+      $("#kBailFull").textContent = money(T.bailFull);
+      $("#kBailPay").textContent = money(T.bailToPay);
+      $("#kServDisc").textContent = T.servDesc;
+      $("#kServFinal").textContent = T.servAfterBail;
+      $("#kMultaFinal").textContent = money(T.multaDesc);
+      $("#kItens").textContent = selected.reduce((a, b) => a + b.qtd, 0);
+      $("#bailPctOut").textContent = `${$("#bailPct").value}%`;
+      $("#descServOut").textContent = `${$("#descServ").value}%`;
+      $("#descMultaOut").textContent = `${$("#descMulta").value}%`;
+    }
+
+    function gerarRelatorio() {
+      const nome = $("#nome").value || "(Sem nome)";
+      const cid = $("#cid").value || "(Sem ID)";
+      const T = calcTotals();
+      const lista = selected.map(it => {
+        const d = DATA[it.idx];
+        return `- ${d.n} (qtd ${it.qtd}) — Serviços: ${d.s * it.qtd} | Multa: ${money(d.m * it.qtd)}`;
+      }).join("\n");
+
+      const temBail = T.bailAllowed;
+      const pct = +$("#bailPct").value;
+      const ds = +$("#descServ").value;
+      const dm = +$("#descMulta").value;
+
+      const txt = `RELATÓRIO DE PRISÃO\n\n` +
+        `Nome: ${nome}\nID: ${cid}\n\n` +
+        `CRIMES/INFRAÇÕES:\n${lista}\n\n` +
+        `RESUMO DAS PENAS:\n` +
+        `• Serviços (base): ${T.baseServ}\n` +
+        `• Desconto de serviços: ${ds}% → Serviços após desconto: ${T.servDesc}\n` +
+        `• Fiança: ${temBail ? 'Permitida' : 'Bloqueada (crime contra a vida)'}\n` +
+        `${temBail ? `  - Valor total de fiança (100%): ${money(T.bailFull)}\n  - Percentual pago: ${pct}% → Valor pago: ${money(T.bailToPay)}\n  - Serviços remanescentes: ${T.servAfterBail}\n` : ''}` +
+        `• Multas (base): ${money(T.baseMulta)}\n` +
+        `• Desconto de multa: ${dm}% → Multa final: ${money(T.multaDesc)}\n\n` +
+        `OBSERVAÇÕES / DESCRIÇÃO (editável):\n` +
+        `${selected.map(it => DATA[it.idx].o).filter(Boolean).map((t, i) => `(${i + 1}) ${t}`).join('\n')}\n` +
+        `\n— Campo livre para o oficial complementar o relato acima.\n`;
+      $("#relatorio").value = txt;
+    }
+
+    function copiar() {
+      const ta = $("#relatorio");
+      ta.select(); ta.setSelectionRange(0, 999999);
+      document.execCommand('copy');
+      alert('Relatório copiado.');
+    }
+
+    function imprimir() {
+      const w = window.open('', '_blank');
+      const content = `<pre style="white-space:pre-wrap;font:14px system-ui;">${escapeHtml($("#relatorio").value)}</pre>`;
+      w.document.write(content); w.document.close(); w.focus(); w.print();
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>\"]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[m]));
+    }
+
+    // Persistência local
+    function persist() { localStorage.setItem('penal:selected', JSON.stringify(selected)); }
+    function restore() { try { const x = JSON.parse(localStorage.getItem('penal:selected') || '[]'); if (Array.isArray(x)) selected = x; } catch (e) { } }
+
+    // ====== Eventos ======
+    $("#addBtn").addEventListener('click', () => { const v = +$("#crimeSelect").value; if (Number.isFinite(v)) pushItem(v); });
+    $("#busca").addEventListener('input', (e) => rebuildSelect(e.target.value));
+    $("#bailPct").addEventListener('input', updateKPIs);
+    $("#descServ").addEventListener('input', updateKPIs);
+    $("#descMulta").addEventListener('input', updateKPIs);
+    $("#genBtn").addEventListener('click', gerarRelatorio);
+    $("#copyBtn").addEventListener('click', copiar);
+    $("#printBtn").addEventListener('click', imprimir);
+    $("#clearBtn").addEventListener('click', () => { if (confirm('Limpar seleção e zerar descontos?')) { selected = []; $("#descServ").value = 0; $("#descMulta").value = 0; $("#bailPct").value = 0; renderSel(); $("#relatorio").value = ''; } });
+
+    // Init
+    restore();
+    rebuildSelect("");
+    renderSel();
+    updateKPIs();
+  </script>
+</body>
+
+</html>
