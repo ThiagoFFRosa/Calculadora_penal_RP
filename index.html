@@ -288,13 +288,13 @@
     }
 
     function gerarRelatorio() {
-      const nome = $("#nome").value || "(Sem nome)";
-      const cid = $("#cid").value || "(Sem ID)";
       const T = calcTotals();
-      const lista = selected.map(it => {
-        const d = DATA[it.idx];
-        return `- ${d.n} (qtd ${it.qtd}) — Serviços: ${d.s * it.qtd} | Multa: ${money(d.m * it.qtd)}`;
-      }).join("\n");
+      const lista = selected.length
+        ? selected.map(it => {
+          const d = DATA[it.idx];
+          return `- ${d.n} (x${it.qtd}) • Serviços: ${d.s * it.qtd} • Multa: ${money(d.m * it.qtd)}`;
+        }).join("\n")
+        : "- Nenhum crime/infração selecionado";
 
       const temBail = T.bailAllowed;
       const pct = +$("#bailPct").value;
@@ -302,18 +302,13 @@
       const dm = +$("#descMulta").value;
 
       const txt = `RELATÓRIO DE PRISÃO\n\n` +
-        `Nome: ${nome}\nID: ${cid}\n\n` +
-        `CRIMES/INFRAÇÕES:\n${lista}\n\n` +
-        `RESUMO DAS PENAS:\n` +
-        `• Serviços (base): ${T.baseServ}\n` +
-        `• Desconto de serviços: ${ds}% → Serviços após desconto: ${T.servDesc}\n` +
-        `• Fiança: ${temBail ? 'Permitida' : 'Bloqueada (crime contra a vida)'}\n` +
-        `${temBail ? `  - Valor total de fiança (100%): ${money(T.bailFull)}\n  - Percentual pago: ${pct}% → Valor pago: ${money(T.bailToPay)}\n  - Serviços remanescentes: ${T.servAfterBail}\n` : ''}` +
-        `• Multas (base): ${money(T.baseMulta)}\n` +
-        `• Desconto de multa: ${dm}% → Multa final: ${money(T.multaDesc)}\n\n` +
-        `OBSERVAÇÕES / DESCRIÇÃO (editável):\n` +
-        `${selected.map(it => DATA[it.idx].o).filter(Boolean).map((t, i) => `(${i + 1}) ${t}`).join('\n')}\n` +
-        `\n— Campo livre para o oficial complementar o relato acima.\n`;
+        `CRIMES:\n${lista}\n\n` +
+        `PENAS:\n` +
+        `• Serviços: base ${T.baseServ} | desc ${ds}% → ${T.servDesc}${temBail ? ` | após fiança: ${T.servAfterBail}` : ''}\n` +
+        `• Fiança: ${temBail ? `100% ${money(T.bailFull)} | pago ${pct}% → ${money(T.bailToPay)}` : 'bloqueada (crime contra a vida)' }\n` +
+        `• Multa: base ${money(T.baseMulta)} | desc ${dm}% → ${money(T.multaDesc)}\n\n` +
+        `OBSERVAÇÕES:\n` +
+        `${selected.map(it => DATA[it.idx].o).filter(Boolean).map((t, i) => `${i + 1}) ${t}`).join('\n') || '- Sem observações.'}`;
       $("#relatorio").value = txt;
     }
 
